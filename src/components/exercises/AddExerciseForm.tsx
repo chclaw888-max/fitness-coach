@@ -17,22 +17,27 @@ export default function AddExerciseForm() {
     >
       <h3 className="font-display text-base">新增訓練項目</h3>
 
-      <div>
-        <label className="label">動作名稱</label>
-        <input name="name" className="input" placeholder="例如：啞鈴臥推" required />
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="lg:col-span-2">
+          <label className="label">動作名稱</label>
+          <input name="name" className="input" placeholder="例如：啞鈴臥推" required />
+        </div>
+        <div>
+          <label className="label">分類</label>
+          <input name="category" className="input" list="category-options" placeholder="例如：自主訓練" />
+          <datalist id="category-options">
+            <option value="自主訓練" />
+            <option value="居家訓練" />
+            <option value="上課" />
+          </datalist>
+        </div>
+        <div>
+          <label className="label">訓練肌群</label>
+          <input name="muscle_group" className="input" placeholder="胸肌、三頭肌…" />
+        </div>
       </div>
 
-      <div>
-        <label className="label">訓練肌群</label>
-        <input name="muscle_group" className="input" placeholder="例如：胸肌、三頭肌、前三角" />
-      </div>
-
-      <div>
-        <label className="label">分類</label>
-        <input name="category" className="input" placeholder="例如：自主訓練 / 居家訓練 / 上課" />
-      </div>
-
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 sm:max-w-md gap-3">
         <div>
           <label className="label">預設組數</label>
           <input name="default_sets" type="number" className="input" placeholder="3" />
@@ -52,7 +57,7 @@ export default function AddExerciseForm() {
         <textarea name="notes" className="input" rows={2} placeholder="選填" />
       </div>
 
-      <button type="submit" className="btn-primary w-full">新增項目</button>
+      <button type="submit" className="btn-primary">新增項目</button>
     </form>
   );
 }

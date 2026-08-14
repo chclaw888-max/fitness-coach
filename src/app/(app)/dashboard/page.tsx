@@ -6,7 +6,7 @@ import TrainingFrequencyChart from "@/components/charts/TrainingFrequencyChart";
 import ExerciseTrendChart from "@/components/charts/ExerciseTrendChart";
 import ImportSeedButton from "@/components/ImportSeedButton";
 import { currentPeriodLabel } from "@/lib/period";
-import type { Goal, BodyMetric, TrainingLog, PeriodType } from "@/types/database.types";
+import type { Goal, BodyMetric, TrainingLog, PeriodType, Exercise } from "@/types/database.types";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +24,7 @@ export default async function DashboardPage() {
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-  const [{ data: goals }, { data: metrics }, { data: recentLogs }, { data: allLogs }] = await Promise.all([
+  const [{ data: goals }, { data: metrics }, { data: recentLogs }, { data: allLogs }, { data: exercisesData }] = await Promise.all([
     supabase.from("goals").select("*").order("period_label", { ascending: false }).order("created_at", { ascending: true }),
     supabase.from("body_metrics").select("*").order("measured_date", { ascending: true }),
     supabase
@@ -33,12 +33,14 @@ export default async function DashboardPage() {
       .gte("log_date", thirtyDaysAgo)
       .order("log_date", { ascending: false }),
     supabase.from("training_logs").select("*").order("log_date", { ascending: true }),
+    supabase.from("exercises").select("*").order("name", { ascending: true }),
   ]);
 
   const goalList = (goals ?? []) as Goal[];
   const metricList = (metrics ?? []) as BodyMetric[];
   const logList = (recentLogs ?? []) as TrainingLog[];
   const allLogList = (allLogs ?? []) as TrainingLog[];
+  const exerciseList = (exercisesData ?? []) as Exercise[];
 
   const latestMetric = metricList[metricList.length - 1];
   const firstMetric = metricList[0];
@@ -124,7 +126,7 @@ export default async function DashboardPage() {
               查看行事曆 →
             </Link>
           </div>
-          <TrainingFrequencyChart logs={logList} />
+          <TrainingFrequencyChart logs={logList} exercises={exerciseList} />
         </div>
       </div>
 
@@ -136,7 +138,7 @@ export default async function DashboardPage() {
           </Link>
         </div>
         <p className="text-sm text-muted mb-4">選擇任一訓練項目，查看重量與次數隨時間的變化。</p>
-        <ExerciseTrendChart logs={allLogList} />
+        <ExerciseTrendChart logs={allLogList} exercises={exerciseList} />
       </div>
 
       {/* 目標進度：依年 / 月 / 週分區塊呈現，並顯示各期間標籤 */}

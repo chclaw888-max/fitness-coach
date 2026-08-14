@@ -12,7 +12,7 @@ function toISODate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-function TrainingLogItem({ log }: { log: TrainingLog }) {
+function TrainingLogItem({ log, category }: { log: TrainingLog; category?: string }) {
   const [isPending, startTransition] = useTransition();
   const [isEditing, setIsEditing] = useState(false);
 
@@ -70,6 +70,11 @@ function TrainingLogItem({ log }: { log: TrainingLog }) {
   return (
     <li className="flex items-center justify-between rounded border border-line px-3 py-2 text-sm">
       <div>
+        {category && (
+          <span className="mr-2 inline-block rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-mono text-accent-dark align-middle">
+            {category}
+          </span>
+        )}
         <span className="font-medium text-ink">{log.exercise_name}</span>
         <span className="ml-2 text-muted font-mono text-xs">
           {log.sets ?? "-"} 組 x {log.reps ?? "-"} 下
@@ -111,6 +116,23 @@ export default function CalendarGrid({
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<string>(todayISO);
   const [customMode, setCustomMode] = useState(false);
+
+  const exerciseById = useMemo(() => new Map(exercises.map((ex) => [ex.id, ex])), [exercises]);
+  const exerciseByName = useMemo(() => new Map(exercises.map((ex) => [ex.name, ex])), [exercises]);
+  const categoryOf = (log: TrainingLog) =>
+    (log.exercise_id && exerciseById.get(log.exercise_id)?.category) ||
+    exerciseByName.get(log.exercise_name)?.category ||
+    undefined;
+
+  const exercisesByCategory = useMemo(() => {
+    const map = new Map<string, Exercise[]>();
+    for (const ex of exercises) {
+      const key = ex.category || "未分類";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(ex);
+    }
+    return map;
+  }, [exercises]);
 
   const cells = useMemo(() => {
     const firstOfMonth = new Date(Date.UTC(year, month - 1, 1));
@@ -176,7 +198,7 @@ export default function CalendarGrid({
                 <div className="mt-1 space-y-0.5">
                   {logs.slice(0, 2).map((log) => (
                     <div key={log.id} className="truncate rounded bg-ink/5 px-1 py-0.5 text-[10px] text-ink">
-                      {log.exercise_name}
+                      {categoryOf(log) && <span className="text-accent-dark">[{categoryOf(log)}]</span>} {log.exercise_name}
                     </div>
                   ))}
                   {logs.length > 2 && (
@@ -197,7 +219,7 @@ export default function CalendarGrid({
         {selectedLogs.length > 0 && (
           <ul className="mb-5 space-y-2">
             {selectedLogs.map((log) => (
-              <TrainingLogItem key={log.id} log={log} />
+              <TrainingLogItem key={log.id} log={log} category={categoryOf(log)} />
             ))}
           </ul>
         )}
@@ -228,10 +250,14 @@ export default function CalendarGrid({
                   }}
                 >
                   <option value="">請選擇動作</option>
-                  {exercises.map((ex) => (
-                    <option key={ex.id} value={ex.id} data-muscle={ex.muscle_group ?? ""}>
-                      {ex.name}
-                    </option>
+                  {Array.from(exercisesByCategory.entries()).map(([category, items]) => (
+                    <optgroup key={category} label={category}>
+                      {items.map((ex) => (
+                        <option key={ex.id} value={ex.id} data-muscle={ex.muscle_group ?? ""}>
+                          {ex.name}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               )}

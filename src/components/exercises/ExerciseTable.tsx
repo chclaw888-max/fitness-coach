@@ -11,7 +11,7 @@ function ExerciseRow({ ex }: { ex: Exercise }) {
   if (isEditing) {
     return (
       <tr className="border-b border-line last:border-0 bg-paper/40">
-        <td colSpan={5} className="px-4 py-4">
+        <td colSpan={4} className="px-4 py-4">
           <form
             action={async (formData) => {
               await updateExercise(ex.id, formData);
@@ -29,7 +29,12 @@ function ExerciseRow({ ex }: { ex: Exercise }) {
             </div>
             <div>
               <label className="label">分類</label>
-              <input name="category" className="input" defaultValue={ex.category ?? ""} />
+              <input name="category" className="input" list="category-options" defaultValue={ex.category ?? ""} />
+              <datalist id="category-options">
+                <option value="自主訓練" />
+                <option value="居家訓練" />
+                <option value="上課" />
+              </datalist>
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
@@ -63,9 +68,13 @@ function ExerciseRow({ ex }: { ex: Exercise }) {
 
   return (
     <tr className="border-b border-line last:border-0">
-      <td className="px-4 py-3 font-medium text-ink">{ex.name}</td>
+      <td className="px-4 py-3">
+        <div className="font-medium text-ink">{ex.name}</div>
+        <span className="inline-block mt-1 rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-mono text-accent-dark">
+          {ex.category || "未分類"}
+        </span>
+      </td>
       <td className="px-4 py-3 text-muted">{ex.muscle_group || "—"}</td>
-      <td className="px-4 py-3 text-muted">{ex.category || "—"}</td>
       <td className="px-4 py-3 text-muted font-mono">
         {ex.default_sets ?? "-"} x {ex.default_reps ?? "-"} {ex.default_unit ?? ""}
       </td>
@@ -95,9 +104,8 @@ export default function ExerciseTable({ exercises }: { exercises: Exercise[] }) 
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-line bg-paper/60 text-left text-xs uppercase tracking-wide text-muted">
-            <th className="px-4 py-3 font-medium">動作</th>
+            <th className="px-4 py-3 font-medium">動作 / 分類</th>
             <th className="px-4 py-3 font-medium">肌群</th>
-            <th className="px-4 py-3 font-medium">分類</th>
             <th className="px-4 py-3 font-medium">預設組數 x 次數</th>
             <th className="px-4 py-3 font-medium"></th>
           </tr>

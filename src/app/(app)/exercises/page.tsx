@@ -20,14 +20,8 @@ export default async function ExercisesPage() {
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <AddExerciseForm />
-        </div>
-        <div className="lg:col-span-2">
-          <ExerciseTable exercises={exercises} />
-        </div>
-      </div>
+      <AddExerciseForm />
+      <ExerciseTable exercises={exercises} />
     </div>
   );
 }

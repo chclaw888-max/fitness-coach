@@ -26,14 +26,8 @@ export default async function MetricsPage() {
         <BodyMetricsChart data={metrics} />
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <AddMetricForm />
-        </div>
-        <div className="lg:col-span-2">
-          <MetricsTable metrics={metrics} />
-        </div>
-      </div>
+      <AddMetricForm />
+      <MetricsTable metrics={metrics} />
     </div>
   );
 }

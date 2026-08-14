@@ -31,32 +31,28 @@ export default async function GoalsPage() {
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <AddGoalForm />
-        </div>
+      <AddGoalForm />
 
-        <div className="lg:col-span-2 space-y-8">
-          {GROUPS.map((group) => {
-            const items = goals.filter((g) => g.period_type === group.type);
-            return (
-              <div key={group.type}>
-                <h2 className="font-display text-base mb-3">{group.label}</h2>
-                {items.length === 0 ? (
-                  <div className="card p-6 text-sm text-muted text-center">
-                    尚無{group.label}
-                  </div>
-                ) : (
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {items.map((goal) => (
-                      <GoalCard key={goal.id} goal={goal} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+      <div className="space-y-8">
+        {GROUPS.map((group) => {
+          const items = goals.filter((g) => g.period_type === group.type);
+          return (
+            <div key={group.type}>
+              <h2 className="font-display text-base mb-3">{group.label}</h2>
+              {items.length === 0 ? (
+                <div className="card p-6 text-sm text-muted text-center">
+                  尚無{group.label}
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {items.map((goal) => (
+                    <GoalCard key={goal.id} goal={goal} />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -11,7 +11,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import type { TrainingLog } from "@/types/database.types";
+import type { Exercise, TrainingLog } from "@/types/database.types";
 
 function parseRepsToNumber(reps: string | null): number | null {
   if (!reps) return null;
@@ -19,14 +19,27 @@ function parseRepsToNumber(reps: string | null): number | null {
   return match ? Number(match[0]) : null;
 }
 
-export default function ExerciseTrendChart({ logs }: { logs: TrainingLog[] }) {
-  const exerciseNames = useMemo(() => {
-    const set = new Set<string>();
-    for (const log of logs) set.add(log.exercise_name);
-    return Array.from(set).sort();
-  }, [logs]);
+export default function ExerciseTrendChart({ logs, exercises }: { logs: TrainingLog[]; exercises: Exercise[] }) {
+  const categoryByName = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const ex of exercises) if (ex.category) map.set(ex.name, ex.category);
+    return map;
+  }, [exercises]);
 
-  const [selected, setSelected] = useState<string>(exerciseNames[0] ?? "");
+  const groupedNames = useMemo(() => {
+    const names = new Set<string>();
+    for (const log of logs) names.add(log.exercise_name);
+    const groups = new Map<string, string[]>();
+    for (const name of Array.from(names).sort()) {
+      const category = categoryByName.get(name) || "未分類";
+      if (!groups.has(category)) groups.set(category, []);
+      groups.get(category)!.push(name);
+    }
+    return groups;
+  }, [logs, categoryByName]);
+
+  const allNames = useMemo(() => Array.from(groupedNames.values()).flat(), [groupedNames]);
+  const [selected, setSelected] = useState<string>(allNames[0] ?? "");
 
   const chartData = useMemo(() => {
     return logs
@@ -40,7 +53,7 @@ export default function ExerciseTrendChart({ logs }: { logs: TrainingLog[] }) {
       }));
   }, [logs, selected]);
 
-  if (exerciseNames.length === 0) {
+  if (allNames.length === 0) {
     return (
       <div className="flex h-64 items-center justify-center text-sm text-muted">
         尚無訓練紀錄，前往「訓練行事曆」開始紀錄後即可查詢趨勢。
@@ -57,10 +70,19 @@ export default function ExerciseTrendChart({ logs }: { logs: TrainingLog[] }) {
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
         >
-          {exerciseNames.map((name) => (
-            <option key={name} value={name}>{name}</option>
+          {Array.from(groupedNames.entries()).map(([category, names]) => (
+            <optgroup key={category} label={category}>
+              {names.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </optgroup>
           ))}
         </select>
+        {categoryByName.get(selected) && (
+          <span className="rounded bg-accent-soft px-2 py-0.5 text-xs font-mono text-accent-dark">
+            {categoryByName.get(selected)}
+          </span>
+        )}
       </div>
 
       {chartData.length === 0 ? (

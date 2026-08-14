@@ -25,7 +25,7 @@ export default function AddGoalForm() {
     >
       <h3 className="font-display text-base">新增目標</h3>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div>
           <label className="label">週期</label>
           <select
@@ -50,11 +50,10 @@ export default function AddGoalForm() {
             required
           />
         </div>
-      </div>
-
-      <div>
-        <label className="label">目標標題</label>
-        <input name="title" className="input" placeholder="例如：槓鈴臥推達 0.5 倍自體重" required />
+        <div className="sm:col-span-2 lg:col-span-2">
+          <label className="label">目標標題</label>
+          <input name="title" className="input" placeholder="例如：槓鈴臥推達 0.5 倍自體重" required />
+        </div>
       </div>
 
       <label className="flex items-center gap-2 text-sm text-ink">
@@ -69,7 +68,7 @@ export default function AddGoalForm() {
       </label>
 
       {!isChecklist && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid sm:grid-cols-3 gap-3">
           <div>
             <label className="label">量化指標</label>
             <input name="metric_name" className="input" placeholder="例如：臥推重量" />
@@ -90,7 +89,7 @@ export default function AddGoalForm() {
         <textarea name="notes" className="input" rows={2} placeholder="選填" />
       </div>
 
-      <button type="submit" className="btn-primary w-full">新增目標</button>
+      <button type="submit" className="btn-primary">新增目標</button>
     </form>
   );
 }
