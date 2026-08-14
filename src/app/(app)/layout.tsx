@@ -12,7 +12,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .from("profiles")
     .select("display_name")
     .eq("id", user.id)
-    .single();
+    .single<{ display_name: string | null }>();
 
   const displayName = profile?.display_name || user.email?.split("@")[0] || "訓練者";
 
