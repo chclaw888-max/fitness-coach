@@ -28,6 +28,31 @@ export async function createGoal(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+export async function updateGoal(id: string, formData: FormData) {
+  const supabase = createClient();
+  const isChecklist = formData.get("is_checklist") === "on";
+
+  const { error } = await supabase
+    .from("goals")
+    .update({
+      period_type: String(formData.get("period_type")),
+      period_label: String(formData.get("period_label")),
+      title: String(formData.get("title")),
+      metric_name: isChecklist ? null : (String(formData.get("metric_name") || "") || null),
+      target_value: isChecklist ? null : toNumberOrNull(formData.get("target_value")),
+      current_value: isChecklist ? null : toNumberOrNull(formData.get("current_value")),
+      unit: isChecklist ? null : (String(formData.get("unit") || "") || null),
+      is_checklist: isChecklist,
+      notes: String(formData.get("notes") || "") || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/goals");
+  revalidatePath("/dashboard");
+}
+
 export async function updateGoalProgress(id: string, current_value: number) {
   const supabase = createClient();
   const { error } = await supabase.from("goals").update({ current_value, updated_at: new Date().toISOString() }).eq("id", id);

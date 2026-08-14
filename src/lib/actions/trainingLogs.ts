@@ -28,6 +28,26 @@ export async function createTrainingLog(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+export async function updateTrainingLog(id: string, formData: FormData) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("training_logs")
+    .update({
+      exercise_name: String(formData.get("exercise_name")),
+      muscle_group: String(formData.get("muscle_group") || "") || null,
+      sets: toIntOrNull(formData.get("sets")),
+      reps: String(formData.get("reps") || "") || null,
+      weight: toNumberOrNull(formData.get("weight")),
+      unit: String(formData.get("unit") || "KG"),
+      notes: String(formData.get("notes") || "") || null,
+    })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/calendar");
+  revalidatePath("/dashboard");
+}
+
 export async function deleteTrainingLog(id: string) {
   const supabase = createClient();
   const { error } = await supabase.from("training_logs").delete().eq("id", id);

@@ -24,6 +24,26 @@ export async function createExercise(formData: FormData) {
   revalidatePath("/calendar");
 }
 
+export async function updateExercise(id: string, formData: FormData) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("exercises")
+    .update({
+      name: String(formData.get("name")),
+      muscle_group: String(formData.get("muscle_group") || "") || null,
+      category: String(formData.get("category") || "") || null,
+      default_unit: String(formData.get("default_unit") || "KG"),
+      default_sets: toIntOrNull(formData.get("default_sets")),
+      default_reps: String(formData.get("default_reps") || "") || null,
+      notes: String(formData.get("notes") || "") || null,
+    })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/exercises");
+  revalidatePath("/calendar");
+}
+
 export async function deleteExercise(id: string) {
   const supabase = createClient();
   const { error } = await supabase.from("exercises").delete().eq("id", id);

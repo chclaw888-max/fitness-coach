@@ -26,6 +26,25 @@ export async function upsertBodyMetric(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+export async function updateBodyMetric(id: string, formData: FormData) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("body_metrics")
+    .update({
+      measured_date: String(formData.get("measured_date")),
+      weight: toNumberOrNull(formData.get("weight")),
+      body_fat: toNumberOrNull(formData.get("body_fat")),
+      visceral_fat: toNumberOrNull(formData.get("visceral_fat")),
+      muscle_mass: toNumberOrNull(formData.get("muscle_mass")),
+      notes: String(formData.get("notes") || "") || null,
+    })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/metrics");
+  revalidatePath("/dashboard");
+}
+
 export async function deleteBodyMetric(id: string) {
   const supabase = createClient();
   const { error } = await supabase.from("body_metrics").delete().eq("id", id);

@@ -3,13 +3,96 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { createTrainingLog, deleteTrainingLog } from "@/lib/actions/trainingLogs";
+import { createTrainingLog, deleteTrainingLog, updateTrainingLog } from "@/lib/actions/trainingLogs";
 import type { Exercise, TrainingLog } from "@/types/database.types";
 
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 
 function toISODate(d: Date) {
   return d.toISOString().slice(0, 10);
+}
+
+function TrainingLogItem({ log }: { log: TrainingLog }) {
+  const [isPending, startTransition] = useTransition();
+  const [isEditing, setIsEditing] = useState(false);
+
+  if (isEditing) {
+    return (
+      <li className="rounded border border-line px-3 py-3">
+        <form
+          action={async (formData) => {
+            await updateTrainingLog(log.id, formData);
+            setIsEditing(false);
+          }}
+          className="grid sm:grid-cols-2 gap-2"
+        >
+          <div className="sm:col-span-2">
+            <label className="label">訓練項目</label>
+            <input name="exercise_name" className="input" defaultValue={log.exercise_name} required />
+          </div>
+          <div className="grid grid-cols-3 gap-2 sm:col-span-2">
+            <div>
+              <label className="label">組數</label>
+              <input name="sets" type="number" className="input" defaultValue={log.sets ?? ""} />
+            </div>
+            <div>
+              <label className="label">次數</label>
+              <input name="reps" className="input" defaultValue={log.reps ?? ""} />
+            </div>
+            <div>
+              <label className="label">重量</label>
+              <input name="weight" type="number" step="0.1" className="input" defaultValue={log.weight ?? ""} />
+            </div>
+          </div>
+          <div>
+            <label className="label">肌群</label>
+            <input name="muscle_group" className="input" defaultValue={log.muscle_group ?? ""} />
+          </div>
+          <div>
+            <label className="label">單位</label>
+            <input name="unit" className="input" defaultValue={log.unit ?? "KG"} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="label">備註</label>
+            <input name="notes" className="input" defaultValue={log.notes ?? ""} />
+          </div>
+          <div className="flex gap-2 sm:col-span-2">
+            <button type="submit" className="btn-primary text-sm px-4 py-1.5">儲存</button>
+            <button type="button" onClick={() => setIsEditing(false)} className="btn-secondary text-sm px-4 py-1.5">
+              取消
+            </button>
+          </div>
+        </form>
+      </li>
+    );
+  }
+
+  return (
+    <li className="flex items-center justify-between rounded border border-line px-3 py-2 text-sm">
+      <div>
+        <span className="font-medium text-ink">{log.exercise_name}</span>
+        <span className="ml-2 text-muted font-mono text-xs">
+          {log.sets ?? "-"} 組 x {log.reps ?? "-"} 下
+          {log.weight != null ? ` · ${log.weight}${log.unit ?? "KG"}` : ""}
+        </span>
+        {log.muscle_group && (
+          <span className="ml-2 text-muted text-xs">（{log.muscle_group}）</span>
+        )}
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <button onClick={() => setIsEditing(true)} className="text-xs text-muted hover:text-accent-dark">
+          編輯
+        </button>
+        <button
+          disabled={isPending}
+          onClick={() => startTransition(() => deleteTrainingLog(log.id))}
+          className="text-xs text-muted hover:text-warn"
+        >
+          刪除
+        </button>
+      </div>
+    </li>
+  );
 }
 
 export default function CalendarGrid({
@@ -26,7 +109,6 @@ export default function CalendarGrid({
   todayISO: string;
 }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [selectedDate, setSelectedDate] = useState<string>(todayISO);
   const [customMode, setCustomMode] = useState(false);
 
@@ -115,25 +197,7 @@ export default function CalendarGrid({
         {selectedLogs.length > 0 && (
           <ul className="mb-5 space-y-2">
             {selectedLogs.map((log) => (
-              <li key={log.id} className="flex items-center justify-between rounded border border-line px-3 py-2 text-sm">
-                <div>
-                  <span className="font-medium text-ink">{log.exercise_name}</span>
-                  <span className="ml-2 text-muted font-mono text-xs">
-                    {log.sets ?? "-"} 組 x {log.reps ?? "-"} 下
-                    {log.weight != null ? ` · ${log.weight}${log.unit ?? "KG"}` : ""}
-                  </span>
-                  {log.muscle_group && (
-                    <span className="ml-2 text-muted text-xs">（{log.muscle_group}）</span>
-                  )}
-                </div>
-                <button
-                  disabled={isPending}
-                  onClick={() => startTransition(() => deleteTrainingLog(log.id))}
-                  className="text-xs text-muted hover:text-warn"
-                >
-                  刪除
-                </button>
-              </li>
+              <TrainingLogItem key={log.id} log={log} />
             ))}
           </ul>
         )}
