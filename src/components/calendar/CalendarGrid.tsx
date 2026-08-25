@@ -6,6 +6,13 @@ import clsx from "clsx";
 import { createTrainingLog, deleteTrainingLog, updateTrainingLog } from "@/lib/actions/trainingLogs";
 import type { Exercise, TrainingLog } from "@/types/database.types";
 
+interface SetDetail {
+  setNumber: number;
+  reps: string;
+  weight: string;
+  rpe: string;
+}
+
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 
 function toISODate(d: Date) {
@@ -127,7 +134,13 @@ export default function CalendarGrid({
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<string>(todayISO);
   const [customMode, setCustomMode] = useState(false);
+  const [setCount, setSetCount] = useState<number>(1);
+  const [setDetails, setSetDetails] = useState<SetDetail[]>([
+    { setNumber: 1, reps: "", weight: "", rpe: "" },
+  ]);
 
+  const [copyTargetDate, setCopyTargetDate] = useState<string>("");
+  const [isCopyingOpen, setIsCopyingOpen] = useState(false);
   const exerciseById = useMemo(() => new Map(exercises.map((ex) => [ex.id, ex])), [exercises]);
   const exerciseByName = useMemo(() => new Map(exercises.map((ex) => [ex.name, ex])), [exercises]);
   const categoryOf = (log: TrainingLog) =>
@@ -304,30 +317,105 @@ export default function CalendarGrid({
               </button>
             </div>
 
-            <div className="grid grid-cols-4 gap-2">
-              <div>
-                <label className="label">組號</label>
-                <input name="set_number" type="number" className="input" placeholder="1" />
-              </div>
-              <div>
-                <label className="label">次數</label>
-                <input name="reps" className="input" placeholder="10" />
-              </div>
-              <div>
-                <label className="label">重量</label>
-                <input name="weight" type="number" step="0.1" className="input" placeholder="20" />
-              </div>
-              <div>
-                <label className="label">RPE (1-10)</label>
-                <input name="rpe" type="number" min="1" max="10" className="input" placeholder="8" />
-              </div>
+            <div>
+              <label className="label">組數 (1-3)</label>
+              <select name="setCount" className="input" onChange={(e) => {
+                const count = Number(e.target.value);
+                setSetCount(count);
+                // Initialize setDetails array if needed
+                if (setDetails.length !== count) {
+                  const newDetails: SetDetail[] = [];
+                  for (let i = 1; i <= count; i++) {
+                    newDetails.push({
+                      setNumber: i,
+                      reps: "",
+                      weight: "",
+                      rpe: "",
+                    });
+                  }
+                  setSetDetails(newDetails);
+                }
+              }} value={setCount}>
+                <option value="1">1 組</option>
+                <option value="2">2 組</option>
+                <option value="3">3 組</option>
+              </select>
             </div>
           </div>
 
-          <div>
-            <label className="label">單位</label>
-            <input name="unit" className="input" defaultValue="KG" />
-          </div>
+          {/* Set Details */}
+          {setDetails.map((set, index) => (
+            <div key={index} className="border border-line rounded p-3 mb-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium">第 {set.setNumber} 組</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = [...setDetails];
+                    updated.splice(index, 1);
+                    setSetDetails(updated);
+                    setSetCount(updated.length);
+                  }}
+                  className="text-xs text-warn hover:text-warn-dark"
+                >
+                  移除此組
+                </button>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                <div>
+                  <label className="label">次數</label>
+                  <input
+                    name={`reps_${index}`}
+                    className="input"
+                    placeholder="10"
+                    value={set.reps}
+                    onChange={(e) => {
+                      const updated = [...setDetails];
+                      updated[index].reps = e.target.value;
+                      setSetDetails(updated);
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="label">重量</label>
+                  <input
+                    name={`weight_${index}`}
+                    type="number"
+                    step="0.1"
+                    className="input"
+                    placeholder="20"
+                    value={set.weight}
+                    onChange={(e) => {
+                      const updated = [...setDetails];
+                      updated[index].weight = e.target.value;
+                      setSetDetails(updated);
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="label">單位</label>
+                  <input name={`unit_${index}`} className="input" defaultValue="KG" />
+                </div>
+                <div>
+                  <label className="label">RPE (1-10)</label>
+                  <input
+                    name={`rpe_${index}`}
+                    type="number"
+                    min="1"
+                    max="10"
+                    className="input"
+                    placeholder="8"
+                    value={set.rpe}
+                    onChange={(e) => {
+                      const updated = [...setDetails];
+                      updated[index].rpe = e.target.value;
+                      setSetDetails(updated);
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
 
           <div>
             <label className="label">備註</label>
@@ -336,6 +424,58 @@ export default function CalendarGrid({
 
           <button type="submit" className="btn-primary">新增到 {selectedDate}</button>
         </form>
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => setIsCopyingOpen(true)}
+            className="btn-secondary w-full"
+          >
+            複製今天的訓練到另一天
+          </button>
+          {isCopyingOpen && (
+            <div className="mt-3 p-3 border border-line rounded">
+              <label className="label">目標日期 (YYYY-MM-DD)</label>
+              <input
+                type="date"
+                className="input w-full mb-2"
+                value={copyTargetDate}
+                onChange={(e) => setCopyTargetDate(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!copyTargetDate) return;
+                  // copy each log in selectedLogs to copyTargetDate
+                  for (const log of selectedLogs) {
+                    const formData = new FormData();
+                    formData.set("log_date", copyTargetDate);
+                    formData.set("exercise_name", log.exercise_name);
+                    formData.set("set_number", String(log.set_number ?? ""));
+                    formData.set("reps", String(log.reps ?? ""));
+                    formData.set("weight", String(log.weight ?? ""));
+                    formData.set("unit", String(log.unit ?? "KG"));
+                    formData.set("rpe", String(log.rpe ?? ""));
+                    formData.set("muscle_group", String(log.muscle_group ?? ""));
+                    formData.set("notes", String(log.notes ?? ""));
+                    await createTrainingLog(formData);
+                  }
+                  setIsCopyingOpen(false);
+                  setCopyTargetDate("");
+                }}
+                className="btn-primary w-full"
+              >
+                複製
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsCopyingOpen(false)}
+                className="mt-2 btn-secondary w-full"
+              >
+                取消
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
