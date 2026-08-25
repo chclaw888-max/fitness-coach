@@ -18,11 +18,12 @@ const PERIOD_META: { type: PeriodType; label: string }[] = [
   { type: "week", label: "週間目標" },
 ];
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: { year?: string } }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
+  const yearParams = await searchParams;
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   const [{ data: goals }, { data: metrics }, { data: recentLogs }, { data: allLogs }, { data: exercisesData }] = await Promise.all([
@@ -43,6 +44,14 @@ export default async function DashboardPage() {
   const allLogList = (allLogs ?? []) as TrainingLog[];
   const exerciseList = (exercisesData ?? []) as Exercise[];
 
+  // Year selector logic
+  const years = [...new Set(goalList.filter(g => g.period_type === "year").map(g => g.period_label))].sort((a, b) => b.localeCompare(a));
+  const defaultYear = years.length > 0 ? years[0] : String(new Date().getFullYear());
+  const selectedYear = yearParams.year ?? defaultYear;
+
+  // Filter goals for selected year (year/month/week within that year)
+  const filteredGoals = goalList.filter(g => g.period_label.startsWith(selectedYear));
+
   const latestMetric = metricList[metricList.length - 1];
   const firstMetric = metricList[0];
   const weightDelta =
@@ -57,7 +66,26 @@ export default async function DashboardPage() {
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <div className="section-eyebrow">Dashboard</div>
-          <h1 className="font-display text-2xl mt-1">總覽儀表板</h1>
+          <div className="flex items-center space-x-2">
+            <h1 className="font-display text-2xl mt-1">總覽儀表板</h1>
+            <label className="text-sm text-muted mt-1 flex items-center">
+              查詢年度：
+              <select
+                value={selectedYear}
+                onChange={(e) => {
+                  const year = e.target.value;
+                  window.location.href = `${window.location.pathname}?year=${year}`;
+                }}
+                className="ml-1 border rounded px-2 py-0.5 text-sm"
+              >
+                {years.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
         {isEmpty && <ImportSeedButton />}
       </div>
@@ -91,19 +119,12 @@ export default async function DashboardPage() {
 
       {/* 年 / 月 / 週 目標達成，分開顯示並標示當前週期標籤 */}
       <div>
-        <h2 className="font-display text-lg mb-3">目標達成（本期）</h2>
+        <h2 className="font-display text-lg mb-3">目標達成（所選年度）</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {PERIOD_META.map(({ type, label }) => {
-            const currentLabel = currentPeriodLabel(type);
-            const items = goalList.filter((g) => g.period_type === type && g.period_label === currentLabel);
-            const achieved = items.filter(isGoalAchieved).length;
+            const items = filteredGoals.filter((g) => g.period_type === type);
             return (
-              <StatCard
-                key={type}
-                label={label}
-                value={items.length > 0 ? `${achieved} / ${items.length}` : "—"}
-                hint={`週期：${currentLabel}`}
-              />
+              <GoalProgressGroup periodType={type} goals={items} key={type} />
             );
           })}
         </div>
@@ -155,7 +176,7 @@ export default async function DashboardPage() {
 
       {/* 目標進度：依年 / 月 / 週分區塊呈現，並顯示各期間標籤 */}
       <div>
-        <h2 className="font-display text-lg mb-3">目標進度</h2>
+        <h2 className="font-display text-lg mb-3">目標進度（所選年度）</h2>
         <div className="grid lg:grid-cols-3 gap-6">
           {PERIOD_META.map(({ type, label }) => (
             <div key={type} className="card p-6">
@@ -165,7 +186,7 @@ export default async function DashboardPage() {
                   管理 →
                 </Link>
               </div>
-              <GoalProgressGroup periodType={type} goals={goalList.filter((g) => g.period_type === type)} />
+              <GoalProgressGroup periodType={type} goals={filteredGoals.filter((g) => g.period_type === type)} />
             </div>
           ))}
         </div>
