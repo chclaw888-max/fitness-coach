@@ -38,10 +38,11 @@ export interface TrainingLog {
   exercise_id: string | null;
   exercise_name: string;
   muscle_group: string | null;
-  sets: number | null;
+  set_number: number | null;
   reps: string | null;
   weight: number | null;
   unit: string | null;
+  rpe: number | null;
   notes: string | null;
   created_at: string;
 }

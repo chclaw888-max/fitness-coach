@@ -19,6 +19,29 @@ function parseRepsToNumber(reps: string | null): number | null {
   return match ? Number(match[0]) : null;
 }
 
+const CustomTooltip = ({ active, payload, label }: { active: boolean; payload: Array<{ name: string; value: number }> | null; label: string }) => {
+  if (active === false || payload === null) {
+    return null;
+  }
+  return (
+    <div className="custom-tooltip" style={{ padding: '8px', background: 'rgba(0,0,0,0.7)', color: '#fff', borderRadius: '4px', pointerEvents: 'none' }}>
+      <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{label}</div>
+      {payload.map((item) => {
+        const { name, value } = item;
+        let formatted = value;
+        if (name === "總訓練量") formatted = `${Math.round(value)}`;
+        else if (name === "預估1RM") formatted = Number.isInteger(value) ? value : value.toFixed(1);
+        return (
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }} key={name}>
+            <span>{name}：</span>
+            <span>{formatted}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 export default function ExerciseTrendChart({ logs, exercises }: { logs: TrainingLog[]; exercises: Exercise[] }) {
   const categoryByName = useMemo(() => {
     const map = new Map<string, string>();
@@ -42,15 +65,40 @@ export default function ExerciseTrendChart({ logs, exercises }: { logs: Training
   const [selected, setSelected] = useState<string>(allNames[0] ?? "");
 
   const chartData = useMemo(() => {
-    return logs
+    const filtered = logs
       .filter((l) => l.exercise_name === selected)
-      .slice()
-      .sort((a, b) => a.log_date.localeCompare(b.log_date))
-      .map((l) => ({
-        date: l.log_date.slice(5),
-        重量: l.weight,
-        次數: parseRepsToNumber(l.reps),
-      }));
+      .sort((a, b) => a.log_date.localeCompare(b.log_date));
+
+    // Aggregate by date
+    const aggMap = new Map<string, { volume: number; oneRM: number; count: number }>();
+    for (const log of filtered) {
+      const weight = log.weight ?? 0;
+      const repsStr = log.reps ?? "";
+      const repsNum = parseRepsToNumber(repsStr);
+      const reps = repsNum ?? 0;
+      if (weight <= 0 || reps <= 0) continue;
+      const volume = weight * reps;
+      // Brzycki formula for 1RM: weight * (36 / (37 - reps))
+      const oneRM = weight * (36 / (37 - reps));
+      const date = log.log_date;
+      const existing = aggMap.get(date) || { volume: 0, oneRM: 0, count: 0 };
+      aggMap.set(date, {
+        volume: existing.volume + volume,
+        oneRM: Math.max(existing.oneRM, oneRM), // keep max 1RM for the day
+        count: existing.count + 1,
+      });
+    }
+
+    // Convert to array sorted by date
+    const result = Array.from(aggMap.entries())
+      .map(([date, data]) => ({
+        date: date.slice(5), // MM-DD
+        總訓練量: data.volume,
+        預估1RM: data.oneRM,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return result;
   }, [logs, selected]);
 
   if (allNames.length === 0) {
@@ -96,10 +144,10 @@ export default function ExerciseTrendChart({ logs, exercises }: { logs: Training
             <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#6B7280" }} axisLine={{ stroke: "#E4E1D9" }} tickLine={false} />
             <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#6B7280" }} axisLine={false} tickLine={false} width={32} />
             <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "#6B7280" }} axisLine={false} tickLine={false} width={32} />
-            <Tooltip contentStyle={{ borderRadius: 8, borderColor: "#E4E1D9", fontSize: 12 }} labelStyle={{ fontWeight: 600 }} />
+            <CustomTooltip />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Line yAxisId="left" type="monotone" dataKey="重量" stroke="#0F9E8E" strokeWidth={2} dot={{ r: 3 }} connectNulls />
-            <Line yAxisId="right" type="monotone" dataKey="次數" stroke="#C6552F" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+            <Line yAxisId="left" type="monotone" dataKey="總訓練量" stroke="#0F9E8E" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+            <Line yAxisId="right" type="monotone" dataKey="預估1RM" stroke="#C6552F" strokeWidth={2} dot={{ r: 3 }} connectNulls />
           </LineChart>
         </ResponsiveContainer>
       )}

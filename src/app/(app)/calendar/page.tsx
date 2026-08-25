@@ -34,6 +34,41 @@ export default async function CalendarPage({
     (logsByDate[log.log_date] ??= []).push(log);
   }
 
+  // Compute PR flags: for each exercise, find max weight and max reps within the month
+  const maxWeightMap: Record<string, number> = {};
+  const maxRepsMap: Record<string, number> = {};
+  for (const log of (logs ?? []) as TrainingLog[]) {
+    const name = log.exercise_name;
+    const weight = log.weight ?? 0;
+    const repsStr = log.reps ?? "";
+    const repsNum = parseRepsToNumber(repsStr) ?? 0;
+    if (!maxWeightMap[name] || weight > maxWeightMap[name]) {
+      maxWeightMap[name] = weight;
+    }
+    if (!maxRepsMap[name] || repsNum > maxRepsMap[name]) {
+      maxRepsMap[name] = repsNum;
+    }
+  }
+
+  // Determine which logs are PRs (weight == max weight OR reps == max reps for that exercise)
+  const prLogIds = new Set<string>();
+  for (const log of (logs ?? []) as TrainingLog[]) {
+    const name = log.exercise_name;
+    const weight = log.weight ?? 0;
+    const repsStr = log.reps ?? "";
+    const repsNum = parseRepsToNumber(repsStr) ?? 0;
+    if (weight === maxWeightMap[name] || repsNum === maxRepsMap[name]) {
+      prLogIds.add(log.id);
+    }
+  }
+
+  // Helper to parse reps string to number
+  function parseRepsToNumber(reps: string | null): number | null {
+    if (!reps) return null;
+    const match = reps.match(/\d+(\.\d+)?/);
+    return match ? Number(match[0]) : null;
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -50,6 +85,7 @@ export default async function CalendarPage({
         logsByDate={logsByDate}
         exercises={(exercisesData ?? []) as Exercise[]}
         todayISO={now.toISOString().slice(0, 10)}
+        prLogIds={Array.from(prLogIds)}
       />
     </div>
   );

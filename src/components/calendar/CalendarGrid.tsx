@@ -12,7 +12,7 @@ function toISODate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-function TrainingLogItem({ log, category }: { log: TrainingLog; category?: string }) {
+function TrainingLogItem({ log, category, isPr = false }: { log: TrainingLog; category?: string; isPr?: boolean }) {
   const [isPending, startTransition] = useTransition();
   const [isEditing, setIsEditing] = useState(false);
 
@@ -32,8 +32,8 @@ function TrainingLogItem({ log, category }: { log: TrainingLog; category?: strin
           </div>
           <div className="grid grid-cols-3 gap-2 sm:col-span-2">
             <div>
-              <label className="label">組數</label>
-              <input name="sets" type="number" className="input" defaultValue={log.sets ?? ""} />
+              <label className="label">組號</label>
+              <input name="set_number" type="number" className="input" defaultValue={log.set_number ?? ""} />
             </div>
             <div>
               <label className="label">次數</label>
@@ -51,6 +51,10 @@ function TrainingLogItem({ log, category }: { log: TrainingLog; category?: strin
           <div>
             <label className="label">單位</label>
             <input name="unit" className="input" defaultValue={log.unit ?? "KG"} />
+          </div>
+          <div>
+            <label className="label">RPE (1-10)</label>
+            <input name="rpe" type="number" min="1" max="10" className="input" defaultValue={log.rpe ?? ""} />
           </div>
           <div className="sm:col-span-2">
             <label className="label">備註</label>
@@ -75,10 +79,15 @@ function TrainingLogItem({ log, category }: { log: TrainingLog; category?: strin
             {category}
           </span>
         )}
+        {isPr && (
+          <span className="mr-2 inline-block rounded bg-warn/20 px-1.5 py-0.5 text-[10px] font-mono text-warn-dark align-middle">
+            🎉 新紀錄
+          </span>
+        )}
         <span className="font-medium text-ink">{log.exercise_name}</span>
         <span className="ml-2 text-muted font-mono text-xs">
-          {log.sets ?? "-"} 組 x {log.reps ?? "-"} 下
-          {log.weight != null ? ` · ${log.weight}${log.unit ?? "KG"}` : ""}
+          組#{log.set_number ?? "-"}: {log.reps ?? "-"} 次 x {log.weight != null ? `${log.weight}${log.unit ?? "KG` : "-"}
+          {log.rpe != null ? ` · RPE ${log.rpe}` : ""}
         </span>
         {log.muscle_group && (
           <span className="ml-2 text-muted text-xs">（{log.muscle_group}）</span>
@@ -106,12 +115,14 @@ export default function CalendarGrid({
   logsByDate,
   exercises,
   todayISO,
+  prLogIds = [],
 }: {
   year: number;
   month: number;
   logsByDate: Record<string, TrainingLog[]>;
   exercises: Exercise[];
   todayISO: string;
+  prLogIds?: string[];
 }) {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<string>(todayISO);
@@ -219,7 +230,7 @@ export default function CalendarGrid({
         {selectedLogs.length > 0 && (
           <ul className="mb-5 space-y-2">
             {selectedLogs.map((log) => (
-              <TrainingLogItem key={log.id} log={log} category={categoryOf(log)} />
+              <TrainingLogItem key={log.id} log={log} category={categoryOf(log)} isPr={prLogIds.includes(log.id)} />
             ))}
           </ul>
         )}
@@ -243,10 +254,26 @@ export default function CalendarGrid({
                   required
                   onChange={(e) => {
                     const opt = e.target.selectedOptions[0];
-                    const hiddenInput = e.target.form?.elements.namedItem("exercise_name") as HTMLInputElement;
-                    const hiddenMuscle = e.target.form?.elements.namedItem("muscle_group") as HTMLInputElement;
+                    const form = e.target.form;
+                    if (!form) return;
+                    const hiddenInput = form.elements.namedItem("exercise_name") as HTMLInputElement;
+                    const hiddenMuscle = form.elements.namedItem("muscle_group") as HTMLInputElement;
+                    const hiddenSet = form.elements.namedItem("set_number") as HTMLInputElement;
+                    const hiddenReps = form.elements.namedItem("reps") as HTMLInputElement;
+                    const hiddenWeight = form.elements.namedItem("weight") as HTMLInputElement;
+                    const hiddenUnit = form.elements.namedItem("unit") as HTMLInputElement;
+                    const hiddenRpe = form.elements.namedItem("rpe") as HTMLInputElement;
                     if (hiddenInput) hiddenInput.value = opt?.text ?? "";
                     if (hiddenMuscle) hiddenMuscle.value = opt?.dataset.muscle ?? "";
+                    // Set default values from exercise options
+                    const ex = (opt?.value ? Array.from(exercisesByCategory.entries()).flatMap(([, items]) => items).find((ex) => ex.id === opt.value) : undefined) as Exercise | undefined;
+                    if (ex) {
+                      if (hiddenSet) hiddenSet.value = ex.default_sets?.toString() ?? "";
+                      if (hiddenReps) hiddenReps.value = ex.default_reps ?? "";
+                      if (hiddenWeight) hiddenWeight.value = ""; // weight not known
+                      if (hiddenUnit) hiddenUnit.value = ex.default_unit ?? "KG";
+                      if (hiddenRpe) hiddenRpe.value = ""; // RPE not known
+                    }
                   }}
                 >
                   <option value="">請選擇動作</option>
@@ -263,6 +290,11 @@ export default function CalendarGrid({
               )}
               <input type="hidden" name="exercise_name" />
               <input type="hidden" name="muscle_group" />
+              <input type="hidden" name="set_number" />
+              <input type="hidden" name="reps" />
+              <input type="hidden" name="weight" />
+              <input type="hidden" name="unit" />
+              <input type="hidden" name="rpe" />
               <button
                 type="button"
                 onClick={() => setCustomMode((v) => !v)}
@@ -272,10 +304,10 @@ export default function CalendarGrid({
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <div>
-                <label className="label">組數</label>
-                <input name="sets" type="number" className="input" placeholder="3" />
+                <label className="label">組號</label>
+                <input name="set_number" type="number" className="input" placeholder="1" />
               </div>
               <div>
                 <label className="label">次數</label>
@@ -284,6 +316,10 @@ export default function CalendarGrid({
               <div>
                 <label className="label">重量</label>
                 <input name="weight" type="number" step="0.1" className="input" placeholder="20" />
+              </div>
+              <div>
+                <label className="label">RPE (1-10)</label>
+                <input name="rpe" type="number" min="1" max="10" className="input" placeholder="8" />
               </div>
             </div>
           </div>

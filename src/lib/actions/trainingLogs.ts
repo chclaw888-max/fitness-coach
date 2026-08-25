@@ -16,10 +16,11 @@ export async function createTrainingLog(formData: FormData) {
     exercise_id: exerciseId,
     exercise_name: String(formData.get("exercise_name")),
     muscle_group: String(formData.get("muscle_group") || "") || null,
-    sets: toIntOrNull(formData.get("sets")),
+    set_number: toIntOrNull(formData.get("set_number")),
     reps: String(formData.get("reps") || "") || null,
     weight: toNumberOrNull(formData.get("weight")),
     unit: String(formData.get("unit") || "KG"),
+    rpe: toIntOrNull(formData.get("rpe")),
     notes: String(formData.get("notes") || "") || null,
   });
 
@@ -35,10 +36,11 @@ export async function updateTrainingLog(id: string, formData: FormData) {
     .update({
       exercise_name: String(formData.get("exercise_name")),
       muscle_group: String(formData.get("muscle_group") || "") || null,
-      sets: toIntOrNull(formData.get("sets")),
+      set_number: toIntOrNull(formData.get("set_number")),
       reps: String(formData.get("reps") || "") || null,
       weight: toNumberOrNull(formData.get("weight")),
       unit: String(formData.get("unit") || "KG"),
+      rpe: toIntOrNull(formData.get("rpe")),
       notes: String(formData.get("notes") || "") || null,
     })
     .eq("id", id);
