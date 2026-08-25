@@ -54,24 +54,11 @@ export default async function GoalsPage({ searchParams }: { searchParams: { year
                   尚無{group.label}
                 </div>
               ) : (
-                <>
-                  {group.type === "year" ? (
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {items.map((goal) => (
-                        <GoalCard key={goal.id} goal={goal} />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {items.map((goal) => (
-                        <div key={goal.id} className="p-4 border rounded-lg bg-bg">
-                          <h3 className="font-display text-lg">{goal.title}</h3>
-                          <p className="text-sm text-muted">{goal.period_label}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
+                <div className="space-y-4">
+                  {items.map((goal) => (
+                    <GoalCard key={goal.id} goal={goal} />
+                  ))}
+                </div>
               )}
             </div>
           );
