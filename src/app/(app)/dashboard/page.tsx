@@ -4,6 +4,7 @@ import GoalProgressGroup, { isGoalAchieved } from "@/components/GoalProgressGrou
 import BodyMetricsChart from "@/components/charts/BodyMetricsChart";
 import TrainingFrequencyChart from "@/components/charts/TrainingFrequencyChart";
 import ExerciseTrendChart from "@/components/charts/ExerciseTrendChart";
+import ExerciseSetsWeightChart from "@/components/charts/ExerciseSetsWeightChart";
 import ImportSeedButton from "@/components/ImportSeedButton";
 import { currentPeriodLabel } from "@/lib/period";
 import type { Goal, BodyMetric, TrainingLog, PeriodType, Exercise } from "@/types/database.types";
@@ -32,7 +33,7 @@ export default async function DashboardPage() {
       .select("*")
       .gte("log_date", thirtyDaysAgo)
       .order("log_date", { ascending: false }),
-    supabase.from("training_logs").select("*").order("log_date", { ascending: true }),
+    supabase.from("training_logs").select("*").order("log_date", { ascending: false }),
     supabase.from("exercises").select("*").order("name", { ascending: true }),
   ]);
 
@@ -139,6 +140,17 @@ export default async function DashboardPage() {
         </div>
         <p className="text-sm text-muted mb-4">選擇任一訓練項目，查看重量與次數隨時間的變化。</p>
         <ExerciseTrendChart logs={allLogList} exercises={exerciseList} />
+      </div>
+
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-lg">訓練項目組數與重量趨勢</h2>
+          <Link href="/calendar" className="text-xs text-accent-dark hover:underline">
+            前往行事曆查看詳細紀錄 →
+          </Link>
+        </div>
+        <p className="text-sm text-muted mb-4">顯示每日平均重量與總組數的變化趨勢。</p>
+        <ExerciseSetsWeightChart logs={allLogList} exercises={exerciseList} />
       </div>
 
       {/* 目標進度：依年 / 月 / 週分區塊呈現，並顯示各期間標籤 */}

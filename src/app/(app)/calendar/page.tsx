@@ -25,7 +25,7 @@ export default async function CalendarPage({
       .select("*")
       .gte("log_date", monthStart)
       .lte("log_date", monthEnd)
-      .order("created_at", { ascending: true }),
+      .order("created_at", { ascending: false }),
     supabase.from("exercises").select("*").order("name", { ascending: true }),
   ]);
 
