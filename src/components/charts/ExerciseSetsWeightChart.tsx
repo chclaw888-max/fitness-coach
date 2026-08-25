@@ -59,18 +59,13 @@ export default function ExerciseSetsWeightChart({ logs, exercises }: { logs: Tra
     }
 
     // Convert to array sorted by date ascending
-    const dateEntries = Array.from(aggMap.entries()).sort(([a], [b]) => a.localeCompare(b));
-
-    // Compute cumulative total sets
-    let cumulativeSets = 0;
-    const result = dateEntries.map(([date, data]) => {
-      cumulativeSets += data.totalSets;
-      return {
+    const result = Array.from(aggMap.entries())
+      .map(([date, data]) => ({
         date: date.slice(5), // MM-DD
         平均重量: data.totalWeight / data.totalSets,
-        總組數: cumulativeSets,
-      };
-    });
+        總組數: data.totalSets,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
 
     return result;
   }, [logs, selected]);

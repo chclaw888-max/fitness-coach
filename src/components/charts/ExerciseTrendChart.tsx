@@ -48,32 +48,34 @@ export default function ExerciseTrendChart({ logs, exercises }: { logs: Training
       .sort((a, b) => a.log_date.localeCompare(b.log_date));
 
     // Aggregate by date
-    const aggMap = new Map<string, { volume: number; oneRM: number; count: number }>();
+    const aggMap = new Map<string, { totalWeight: number; count: number; oneRM: number }>();
     for (const log of filtered) {
       const weight = log.weight ?? 0;
       const repsStr = log.reps ?? "";
       const repsNum = parseRepsToNumber(repsStr);
       const reps = repsNum ?? 0;
       if (weight <= 0 || reps <= 0) continue;
-      const volume = weight * reps;
       // Brzycki formula for 1RM: weight * (36 / (37 - reps))
       const oneRM = weight * (36 / (37 - reps));
       const date = log.log_date;
-      const existing = aggMap.get(date) || { volume: 0, oneRM: 0, count: 0 };
+      const existing = aggMap.get(date) || { totalWeight: 0, count: 0, oneRM: 0 };
       aggMap.set(date, {
-        volume: existing.volume + volume,
-        oneRM: Math.max(existing.oneRM, oneRM), // keep max 1RM for the day
+        totalWeight: existing.totalWeight + weight,
         count: existing.count + 1,
+        oneRM: Math.max(existing.oneRM, oneRM), // keep max 1RM for the day
       });
     }
 
     // Convert to array sorted by date
     const result = Array.from(aggMap.entries())
-      .map(([date, data]) => ({
-        date: date.slice(5), // MM-DD
-        總訓練量: data.volume,
-        預估1RM: data.oneRM,
-      }))
+      .map(([date, data]) => {
+        const avgWeight = data.count > 0 ? data.totalWeight / data.count : 0;
+        return {
+          date: date.slice(5), // MM-DD
+          平均重量: avgWeight,
+          預估1RM: data.oneRM,
+        };
+      })
       .sort((a, b) => a.date.localeCompare(b.date));
 
     return result;
@@ -123,33 +125,33 @@ export default function ExerciseTrendChart({ logs, exercises }: { logs: Training
             <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#6B7280" }} axisLine={false} tickLine={false} width={32} />
             <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "#6B7280" }} axisLine={false} tickLine={false} width={32} />
             <Tooltip content={({ active, payload, label }) => {
-  if (active === false || payload === null) {
-    return null;
-  }
-  return (
-    <div className="custom-tooltip" style={{ padding: '8px', background: 'rgba(0,0,0,0.7)', color: '#fff', borderRadius: '4px', pointerEvents: 'none' }}>
-      <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{label}</div>
-      {payload!.map((item) => {
-        const { name, value } = item;
-        const numValue = typeof value === 'number' ? value : 0;
-        let formatted: string | number = numValue;
-        if (name === "總訓練量") {
-          formatted = `${Math.round(numValue)}`;
-        } else if (name === "預估1RM") {
-          formatted = Number.isInteger(numValue) ? numValue : numValue.toFixed(1);
-        }
-        return (
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }} key={name}>
-            <span>{name}：</span>
-            <span>{formatted}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}} />
+	  if (active === false || payload === null) {
+	    return null;
+	  }
+	  return (
+	    <div className="custom-tooltip" style={{ padding: '8px', background: 'rgba(0,0,0,0.7)', color: '#fff', borderRadius: '4px', pointerEvents: 'none' }}>
+	      <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{label}</div>
+	      {payload!.map((item) => {
+	        const { name, value } = item;
+	        const numValue = typeof value === 'number' ? value : 0;
+	        let formatted: string | number = numValue;
+	        if (name === "平均重量") {
+	          formatted = Number.isInteger(numValue) ? numValue : numValue.toFixed(1);
+	        } else if (name === "預估1RM") {
+	          formatted = Number.isInteger(numValue) ? numValue : numValue.toFixed(1);
+	        }
+	        return (
+	          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }} key={name}>
+	            <span>{name}：</span>
+	            <span>{formatted}</span>
+	          </div>
+	        );
+	      })}
+	    </div>
+	  );
+	}} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Line yAxisId="left" type="monotone" dataKey="總訓練量" stroke="#0F9E8E" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+            <Line yAxisId="left" type="monotone" dataKey="平均重量" stroke="#0F9E8E" strokeWidth={2} dot={{ r: 3 }} connectNulls />
             <Line yAxisId="right" type="monotone" dataKey="預估1RM" stroke="#C6552F" strokeWidth={2} dot={{ r: 3 }} connectNulls />
           </LineChart>
         </ResponsiveContainer>
