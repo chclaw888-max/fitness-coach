@@ -86,7 +86,7 @@ function TrainingLogItem({ log, category, isPr = false }: { log: TrainingLog; ca
         )}
         <span className="font-medium text-ink">{log.exercise_name}</span>
         <span className="ml-2 text-muted font-mono text-xs">
-          組#{log.set_number ?? "-"}: {log.reps ?? "-"} 次 x {log.weight != null ? `${log.weight}${log.unit ?? "KG` : "-"}
+          組#{log.set_number ?? "-"}: {log.reps ?? "-"} 次 x {log.weight != null ? log.weight + (log.unit ?? "KG") : "-"}
           {log.rpe != null ? ` · RPE ${log.rpe}` : ""}
         </span>
         {log.muscle_group && (
