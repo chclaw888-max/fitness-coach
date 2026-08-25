@@ -47,27 +47,30 @@ export default function ExerciseSetsWeightChart({ logs, exercises }: { logs: Tra
       .sort((a, b) => a.log_date.localeCompare(b.log_date)); // ascending for chart
 
     // Aggregate by date
-    const aggMap = new Map<string, { totalSets: number; totalWeight: number; count: number }>();
+    const aggMap = new Map<string, { totalSets: number; totalWeight: number }>();
     for (const log of filtered) {
       const weight = log.weight ?? 0;
-      // each log represents one set
       const date = log.log_date;
-      const existing = aggMap.get(date) || { totalSets: 0, totalWeight: 0, count: 0 };
+      const existing = aggMap.get(date) || { totalSets: 0, totalWeight: 0 };
       aggMap.set(date, {
         totalSets: existing.totalSets + 1,
         totalWeight: existing.totalWeight + weight,
-        count: existing.count + 1,
       });
     }
 
-    // Convert to array sorted by date
-    const result = Array.from(aggMap.entries())
-      .map(([date, data]) => ({
+    // Convert to array sorted by date ascending
+    const dateEntries = Array.from(aggMap.entries()).sort(([a], [b]) => a.localeCompare(b));
+
+    // Compute cumulative total sets
+    let cumulativeSets = 0;
+    const result = dateEntries.map(([date, data]) => {
+      cumulativeSets += data.totalSets;
+      return {
         date: date.slice(5), // MM-DD
         平均重量: data.totalWeight / data.totalSets,
-        總組數: data.totalSets,
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+        總組數: cumulativeSets,
+      };
+    });
 
     return result;
   }, [logs, selected]);
