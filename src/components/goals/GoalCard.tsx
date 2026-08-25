@@ -103,6 +103,9 @@ export default function GoalCard({ goal }: { goal: Goal }) {
           {goal.metric_name && (
             <p className="text-xs text-muted mt-0.5">{goal.metric_name}</p>
           )}
+          {(goal.period_type === "month" || goal.period_type === "week") && (
+            <p className="text-xs text-muted mt-0.5">{goal.period_label}</p>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button onClick={() => setIsEditing(true)} className="text-xs text-muted hover:text-accent-dark">
