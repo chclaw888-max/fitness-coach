@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Goal, PeriodType } from "@/types/database.types";
 import AddGoalForm from "@/components/goals/AddGoalForm";
 import GoalCard from "@/components/goals/GoalCard";
+import YearSelector from "@/app/(app)/components/YearSelector";
 
 export const dynamic = "force-dynamic";
 
@@ -35,23 +36,7 @@ export default async function GoalsPage({ searchParams }: { searchParams: { year
           <div className="section-eyebrow">Goals</div>
           <div className="flex items-center space-x-2">
             <h1 className="font-display text-2xl mt-1">目標設定</h1>
-            <label className="text-sm text-muted mt-1 flex items-center">
-              查詢年度：
-              <select
-                value={selectedYear}
-                onChange={(e) => {
-                  const year = e.target.value;
-                  window.location.href = `${window.location.pathname}?year=${year}`;
-                }}
-                className="ml-1 border rounded px-2 py-0.5 text-sm"
-              >
-                {years.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <YearSelector years={years} defaultYear={defaultYear} />
           </div>
         </div>
       </div>
