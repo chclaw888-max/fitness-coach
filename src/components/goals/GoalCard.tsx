@@ -12,12 +12,22 @@ export default function GoalCard({ goal }: { goal: Goal }) {
   const [isChecklistEdit, setIsChecklistEdit] = useState(goal.is_checklist);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const pct =
-    !goal.is_checklist && goal.target_value
-      ? Math.min(100, Math.round(((current ?? 0) / goal.target_value) * 100))
-      : goal.is_completed
-      ? 100
-      : 0;
+  let displayPct = 0;
+  let barPct = 0;
+  if (!goal.is_checklist && goal.target_value != null) {
+    const currentVal = current ?? 0;
+    const target = goal.target_value;
+    if (target !== 0) {
+      displayPct = Math.round(((currentVal - target) / target) * 100);
+      barPct = Math.min(100, Math.round((currentVal / target) * 100));
+    } else {
+      displayPct = currentVal !== 0 ? 100 : 0;
+      barPct = displayPct;
+    }
+  } else {
+    displayPct = goal.is_completed ? 100 : 0;
+    barPct = displayPct;
+  }
 
   if (isEditing) {
     return (
@@ -124,8 +134,8 @@ export default function GoalCard({ goal }: { goal: Goal }) {
 
       <div className="mt-3 h-1.5 w-full rounded-full bg-line overflow-hidden">
         <div
-          className={clsx("h-full rounded-full transition-all", pct >= 100 ? "bg-good" : "bg-accent")}
-          style={{ width: `${pct}%` }}
+          className={clsx("h-full rounded-full transition-all", barPct >= 100 ? "bg-good" : "bg-accent")}
+          style={{ width: `${barPct}%` }}
         />
       </div>
 
@@ -155,7 +165,9 @@ export default function GoalCard({ goal }: { goal: Goal }) {
             </span>
           </div>
         )}
-        <span className="font-mono text-xs text-muted">{pct}%</span>
+        <span className="font-mono text-xs text-muted">
+          {displayPct >= 0 ? `+${displayPct}` : `${displayPct}`}%
+        </span>
       </div>
     </div>
   );

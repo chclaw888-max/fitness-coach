@@ -61,10 +61,23 @@ export default function GoalProgressGroup({
             </div>
             <ul className="space-y-3">
               {items.map((goal) => {
-                const pct = !goal.is_checklist && goal.target_value
-                  ? Math.min(100, Math.round(((goal.current_value ?? 0) / goal.target_value) * 100))
-                  : goal.is_completed ? 100 : 0;
-                const isPendingDelete = isDeleting[goal.id] || false;
+                let displayPct = 0;
+                let barPct = 0;
+                if (!goal.is_checklist && goal.target_value != null) {
+                  const current = goal.current_value ?? 0;
+                  const target = goal.target_value;
+                  if (target !== 0) {
+                    displayPct = Math.round(((current - target) / target) * 100);
+                    // barPct: progress towards target assuming increase goal (current/target) but cap at 100
+                    barPct = Math.min(100, Math.round((current / target) * 100));
+                  } else {
+                    displayPct = current !== 0 ? 100 : 0;
+                    barPct = displayPct;
+                  }
+                } else {
+                  displayPct = goal.is_completed ? 100 : 0;
+                  barPct = displayPct;
+                }
 
                 return (
                   <li key={goal.id} className="flex items-center justify-between">
@@ -132,13 +145,15 @@ export default function GoalProgressGroup({
                         {goal.is_checklist
                           ? goal.is_completed ? "已完成" : "進行中"
                           : `${goal.current_value ?? 0}${goal.unit ?? ""} / ${goal.target_value ?? "-"}${goal.unit ?? ""}`}
-                        <span className="ml-3 font-mono">{pct}%</span>
+                        <span className="ml-3 font-mono">
+                          {displayPct >= 0 ? `+${displayPct}` : `${displayPct}`}%
+                        </span>
                       </div>
                     </div>
                     <div className="h-1.5 w-20 rounded-full bg-line overflow-hidden shrink-0">
                       <div
-                        className={clsx("h-full rounded-full", pct >= 100 ? "bg-good" : "bg-accent")}
-                        style={{ width: `${pct}%` }}
+                        className={clsx("h-full rounded-full", barPct >= 100 ? "bg-good" : "bg-accent")}
+                        style={{ width: `${barPct}%` }}
                       />
                     </div>
                   </li>
