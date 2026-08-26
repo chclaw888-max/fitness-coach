@@ -1,3 +1,5 @@
+"use client";
+
 import type { Goal, PeriodType } from "@/types/database.types";
 import clsx from "clsx";
 import { useState, useTransition } from "react";
