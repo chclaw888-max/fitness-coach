@@ -1,5 +1,7 @@
 import type { Goal, PeriodType } from "@/types/database.types";
 import clsx from "clsx";
+import { useState, useTransition } from "react";
+import { deleteGoal } from "@/lib/actions/goals";
 
 const PERIOD_LABEL: Record<PeriodType, string> = {
   year: "年度",
@@ -16,9 +18,11 @@ export function isGoalAchieved(goal: Goal) {
 export default function GoalProgressGroup({
   periodType,
   goals,
+  onDeleteGoal,
 }: {
   periodType: PeriodType;
   goals: Goal[];
+  onDeleteGoal?: (id: string) => Promise<void>;
 }) {
   if (goals.length === 0) {
     return (
@@ -27,6 +31,9 @@ export default function GoalProgressGroup({
       </div>
     );
   }
+
+  const [deletePrompts, setDeletePrompts] = useState<Record<string, boolean>>({});
+  const [isDeleting, setIsDeleting] = useState<Record<string, boolean>>({});
 
   // 依 period_label（例如 2026 / 2026-08 / 2026-W33）分組，最新的排在最前面
   const grouped = new Map<string, Goal[]>();
@@ -55,18 +62,78 @@ export default function GoalProgressGroup({
                 const pct = !goal.is_checklist && goal.target_value
                   ? Math.min(100, Math.round(((goal.current_value ?? 0) / goal.target_value) * 100))
                   : goal.is_completed ? 100 : 0;
+                const isPendingDelete = isDeleting[goal.id] || false;
 
                 return (
-                  <li key={goal.id}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-medium text-ink truncate">{goal.title}</span>
-                      <span className="text-xs font-mono text-muted shrink-0 ml-2">
+                  <li key={goal.id} className="flex items-center justify-between">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-ink truncate max-w-[200px]">{goal.title}</span>
+                        {onDeleteGoal && (
+                          <button
+                            onClick={() => {
+                              setDeletePrompts(prev => ({ ...prev, [goal.id]: true }));
+                            }}
+                            className="text-xs text-muted hover:text-warn"
+                            aria-label="刪除目標"
+                          >
+                            刪除
+                          </button>
+                        )}
+                      </div>
+                      {deletePrompts[goal.id] && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="text-warn">確定要刪除此目標嗎？此操作無法復原。</span>
+                          <button
+                            onClick={async () => {
+                              setIsDeleting(prev => ({ ...prev, [goal.id]: true }));
+                              try {
+                                await onDeleteGoal?.(goal.id);
+                                setDeletePrompts(prev => {
+                                  const newPrompts = { ...prev };
+                                  delete newPrompts[goal.id];
+                                  return newPrompts;
+                                });
+                                setIsDeleting(prev => {
+                                  const newState = { ...prev };
+                                  delete newState[goal.id];
+                                  return newState;
+                                });
+                              } catch (error) {
+                                console.error('Failed to delete goal:', error);
+                                setIsDeleting(prev => {
+                                  const newState = { ...prev };
+                                  delete newState[goal.id];
+                                  return newState;
+                                });
+                              }
+                            }}
+                            className="text-xs text-muted hover:text-warn"
+                          >
+                            確認刪除
+                          </button>
+                          <button
+                            onClick={() => {
+                              setDeletePrompts(prev => {
+                                const newPrompts = { ...prev };
+                                delete newPrompts[goal.id];
+                                return newPrompts;
+                              });
+                            }}
+                            className="text-xs text-muted hover:text-warn"
+                          >
+                            取消
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-xs text-muted">
                         {goal.is_checklist
                           ? goal.is_completed ? "已完成" : "進行中"
                           : `${goal.current_value ?? 0}${goal.unit ?? ""} / ${goal.target_value ?? "-"}${goal.unit ?? ""}`}
-                      </span>
+                        <span className="ml-3 font-mono">{pct}%</span>
+                      </div>
                     </div>
-                    <div className="h-1.5 w-full rounded-full bg-line overflow-hidden">
+                    <div className="h-1.5 w-20 rounded-full bg-line overflow-hidden shrink-0">
                       <div
                         className={clsx("h-full rounded-full", pct >= 100 ? "bg-good" : "bg-accent")}
                         style={{ width: `${pct}%` }}
