@@ -160,23 +160,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
         <ExerciseTrendChart logs={allLogList} exercises={exerciseList} />
       </div>
 
-      {/* 目標進度：依年 / 月 / 週分區塊呈現，並顯示各期間標籤 */}
-      <div>
-        <h2 className="font-display text-lg mb-3">目標進度（所選年度）</h2>
-        <div className="grid lg:grid-cols-3 gap-6">
-          {PERIOD_META.map(({ type, label }) => (
-            <div key={type} className="card p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-display text-base">{label}</h3>
-                <Link href="/goals" className="text-xs text-accent-dark hover:underline">
-                  管理 →
-                </Link>
-              </div>
-              <GoalProgressGroup periodType={type} goals={filteredGoals.filter((g) => g.period_type === type)} onDeleteGoal={deleteGoal} />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+          </div>
   );
 }

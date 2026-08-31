@@ -361,7 +361,21 @@ export default function CalendarGrid({
                   移除此組
                 </button>
               </div>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
+                <div>
+                  <label className="label">組號</label>
+                  <input
+                    name={`setNumber_${index}`}
+                    type="number"
+                    className="input"
+                    value={set.setNumber}
+                    onChange={(e) => {
+                      const updated = [...setDetails];
+                      updated[index].setNumber = Number(e.target.value) || 0;
+                      setSetDetails(updated);
+                    }}
+                  />
+                </div>
                 <div>
                   <label className="label">次數</label>
                   <input
