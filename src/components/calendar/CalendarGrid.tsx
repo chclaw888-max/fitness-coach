@@ -249,9 +249,44 @@ export default function CalendarGrid({
         )}
 
         <form
-          action={async (formData) => {
-            formData.set("log_date", selectedDate);
-            await createTrainingLog(formData);
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const form = e.target;
+
+            // Create a training log for each set
+            for (let i = 0; i < setDetails.length; i++) {
+              const set = setDetails[i];
+              const formData = new FormData();
+
+              formData.set("log_date", selectedDate);
+
+              // Handle exercise selection (either from dropdown or custom input)
+              if (customMode) {
+                formData.set("exercise_name", form.elements.namedItem("exercise_name")?.value ?? "");
+              } else {
+                const exerciseId = form.elements.namedItem("exercise_id")?.value;
+                formData.set("exercise_id", exerciseId ?? "");
+
+                // Find the selected exercise to get its name for the hidden input
+                const selectedExercise = exercises.find(ex => ex.id === exerciseId);
+                if (selectedExercise) {
+                  formData.set("exercise_name", selectedExercise.name);
+                }
+              }
+
+              // Set set-specific fields
+              formData.set("set_number", String(set.setNumber));
+              formData.set("reps", set.reps ?? "");
+              formData.set("weight", set.weight ?? "");
+              formData.set("unit", form.elements.namedItem(`unit_${i}`)?.value ?? "KG");
+              formData.set("rpe", set.rpe ?? "");
+              formData.set("muscle_group", form.elements.namedItem(`muscleGroup_${i}`)?.value ?? "");
+
+              // Notes are global (same for all sets)
+              formData.set("notes", form.elements.namedItem("notes")?.value ?? "");
+
+              await createTrainingLog(formData);
+            }
           }}
           className="space-y-3"
         >
@@ -361,7 +396,7 @@ export default function CalendarGrid({
                   移除此組
                 </button>
               </div>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-6 gap-2">
                 <div>
                   <label className="label">組號</label>
                   <input
@@ -409,6 +444,10 @@ export default function CalendarGrid({
                 <div>
                   <label className="label">單位</label>
                   <input name={`unit_${index}`} className="input" defaultValue="KG" />
+                </div>
+                <div>
+                  <label className="label">肌群</label>
+                  <input name={`muscleGroup_${index}`} className="input" placeholder="例如：胸肌" />
                 </div>
                 <div>
                   <label className="label">RPE (1-10)</label>
